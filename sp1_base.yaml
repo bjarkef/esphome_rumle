@@ -1,0 +1,113 @@
+esp8266:
+  board: esp8285
+
+sensor:
+  - platform: uptime
+    name: ${friendly_name} Uptime
+
+  - platform: wifi_signal
+    name: ${friendly_name} WiFi Signal
+    update_interval: 60s
+
+  - platform: hlw8012
+    sel_pin:
+      number: GPIO12
+      inverted: true
+    cf_pin: GPIO04
+    cf1_pin: GPIO05
+
+    model: BL0937
+    current_resistor: 0.000997
+    voltage_divider: 2034
+    change_mode_every: 8
+    update_interval: 10s
+    initial_mode: CURRENT
+    # Current sensor
+    current:
+      id: current
+      name: ${friendly_name} Current
+      unit_of_measurement: A
+      accuracy_decimals: 2
+    # Voltage sensor
+    voltage:
+      id: voltage
+      name: ${friendly_name} Voltage
+      unit_of_measurement: V
+      accuracy_decimals: 1
+    # Power sensor
+    power:
+      id: power
+      name: ${friendly_name} Power
+      unit_of_measurement: W
+      accuracy_decimals: 0
+
+  - platform: total_daily_energy
+    name: ${friendly_name} Daily Energy Usage
+    power_id: power
+    filters:
+      - multiply: 0.001
+    unit_of_measurement: kWh
+
+  - platform: template
+    name: ${friendly_name} Apparent Power
+    lambda: |-
+      return id(voltage).state * id(current).state;
+    update_interval: 60s
+    unit_of_measurement: VA
+    accuracy_decimals: 0
+
+  - platform: template
+    name: ${friendly_name} Power Factor
+    lambda: |-
+      return id(power).state / (id(voltage).state * id(current).state);
+    update_interval: 60s
+    accuracy_decimals: 2
+
+# Binary sensor for the power button
+binary_sensor:
+  - platform: gpio
+    name: ${friendly_name} Power Button
+    id: button
+    pin:
+      number: GPIO3
+      inverted: true
+    on_press:
+      - switch.toggle: relay
+
+# Switch to restart the plug
+switch:
+  - platform: restart
+    name: ${friendly_name} Restart Switch
+  # Switch for the relay
+  - platform: gpio
+    id: relay
+    name: ${friendly_name} Power Switch
+    pin: GPIO14
+    restore_mode: RESTORE_DEFAULT_ON
+    on_turn_on:
+      - light.turn_on: led
+    on_turn_off:
+      - light.turn_off: led
+
+# esphome state led
+output:
+  - platform: esp8266_pwm
+    id: state_led
+    pin:
+      number: GPIO1
+      inverted: true
+
+# Power state light
+light:
+  - platform: monochromatic
+    output: state_led
+    id: led
+
+# Uses the red LED as a status indicator
+status_led:
+  pin:
+    number: GPIO13
+    inverted: true
+
+
+<<: !include base.yaml

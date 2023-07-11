@@ -1,0 +1,9 @@
+substitutions:
+  friendly_name: "TV Relay"
+  devicename: tv
+  devicetype: sp1
+  static_ip: 192.168.129.231
+
+
+<<: !include sp1_base.yaml
+    
